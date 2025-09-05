@@ -4,8 +4,8 @@
 
 - name: "Обновление кэша пакетов"
   hosts: all
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
 
   tasks:
     - name: "Обновление кэша пакетов"
@@ -13,3 +13,6 @@
         update_cache: yes
         cache_valid_time: 3600
       when: ansible_os_family == "Debian"
+
+# Импорт playbook для установки Docker
+- import_playbook: playbooks/docker.yml

@@ -57,6 +57,9 @@ deploy-vps: ## Развернуть только VPS серверы
 	@echo "$(GREEN)Развертывание VPS серверов...$(NC)"
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK_CMD) -i $(INVENTORY_FILE) $(PLAYBOOK_FILE) --limit vps
 
+deploy-docker: ## Установить Docker на хосты группы docker
+	@echo "$(GREEN)Установка Docker...$(NC)"
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK_CMD) -i $(INVENTORY_FILE) playbooks/docker.yml
 
 ping: ## Проверить подключение к хостам
 	@echo "$(GREEN)Проверка подключения...$(NC)"
