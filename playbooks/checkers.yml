@@ -1,0 +1,90 @@
+---
+# Playbook для запуска checkers_frontend в Docker контейнере
+# Запускает checkers_frontend на хостах группы checkers
+
+- name: "Запуск checkers_frontend в Docker"
+  hosts: checkers
+  become: true
+  gather_facts: true
+  vars_files:
+    - "../group_vars/all.yml"
+    - "../host_vars/{{ inventory_hostname }}.yml"
+
+  vars:
+    checkers_image: "dot-dash.registry.twcstorage.ru/checkers_frontend:latest"
+    checkers_container_name: "checkers_frontend"
+    checkers_port: "8080"
+    checkers_network: "checkers_network"
+
+  tasks:
+    - name: "Проверка, что Docker установлен"
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: docker_check.rc != 0
+
+    - name: "Создание Docker сети для checkers"
+      docker_network:
+        name: "{{ checkers_network }}"
+        state: present
+
+    - name: "Остановка существующего контейнера checkers (если запущен)"
+      docker_container:
+        name: "{{ checkers_container_name }}"
+        state: stopped
+      ignore_errors: true
+
+    - name: "Удаление существующего контейнера checkers (если существует)"
+      docker_container:
+        name: "{{ checkers_container_name }}"
+        state: absent
+      ignore_errors: true
+
+    - name: "Загрузка образа checkers_frontend"
+      docker_image:
+        name: "{{ checkers_image }}"
+        source: pull
+        force_source: yes
+
+    - name: "Запуск контейнера checkers_frontend"
+      docker_container:
+        name: "{{ checkers_container_name }}"
+        image: "{{ checkers_image }}"
+        state: started
+        restart_policy: unless-stopped
+        networks:
+          - name: "{{ checkers_network }}"
+          - name: "haproxy_network"
+
+#    - name: "Ожидание запуска checkers_frontend"
+#      wait_for:
+#        port: "{{ checkers_port }}"
+#        host: "{{ ansible_default_ipv4.address | default('localhost') }}"
+#        delay: 10
+#        timeout: 300
+#
+#    - name: "Проверка статуса контейнера checkers"
+#      docker_container_info:
+#        name: "{{ checkers_container_name }}"
+#      register: checkers_info
+#
+#    - name: "Проверка доступности приложения"
+#      uri:
+#        url: "http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ checkers_port }}"
+#        method: GET
+#        status_code: 200
+#      register: checkers_health
+#      retries: 5
+#      delay: 10
+#      until: checkers_health.status == 200
+#      ignore_errors: true
+#
+#    - name: "Вывод информации о контейнере checkers"
+#      debug:
+#        msg: |
+#          Checkers Frontend контейнер запущен:
+#          - Имя: {{ checkers_info.container.Name }}
+#          - Статус: {{ checkers_info.container.State.Status }}
+#          - Сети: {{ checkers_info.container.NetworkSettings.Networks.keys() | list }}
+#          - Приложение доступно через HAProxy: http://{{ ansible_default_ipv4.address | default('localhost') }}:80
+#          - Статус приложения: {{ 'Доступно' if checkers_health.status == 200 else 'Недоступно' }}

@@ -1,0 +1,50 @@
+---
+# Playbook для авторизации в Docker репозитории
+# Выполняет docker login для указанного репозитория
+
+- name: "Авторизация в Docker репозитории"
+  hosts: docker
+  become: false
+  gather_facts: true
+  vars_files:
+    - "../group_vars/all.yml"
+    - "../host_vars/{{ inventory_hostname }}.yml"
+
+  vars:
+    # Настройки Docker репозитория
+    docker_registry: "{{ docker_registry | default('docker.io') }}"
+    docker_username: "{{ docker_username | default('') }}"
+    docker_password: "{{ docker_password | default('') }}"
+
+  tasks:
+    - name: "Проверка, что Docker установлен"
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: docker_check.rc != 0
+
+    - name: "Проверка наличия учетных данных Docker"
+      fail:
+        msg: "Необходимо указать docker_username и docker_password в переменных"
+      when: docker_username == '' or docker_password == ''
+
+    - name: "Авторизация в Docker репозитории"
+      docker_login:
+        registry: "{{ docker_registry }}"
+        username: "{{ docker_username }}"
+        password: "{{ docker_password }}"
+        reauthorize: yes
+      when: docker_username != '' and docker_password != ''
+
+    - name: "Проверка авторизации"
+      command: docker system info
+      register: docker_info
+      changed_when: false
+
+    - name: "Вывод информации о Docker"
+      debug:
+        msg: |
+          Docker авторизация выполнена:
+          - Репозиторий: {{ docker_registry }}
+          - Пользователь: {{ docker_username }}
+          - Статус: {{ 'Успешно' if docker_info.rc == 0 else 'Ошибка' }}

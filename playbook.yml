@@ -17,5 +17,11 @@
 # Импорт playbook для установки Docker
 - import_playbook: playbooks/docker.yml
 
+# Импорт playbook для авторизации в Docker
+- import_playbook: playbooks/docker-login.yml
+
+# Импорт playbook для запуска checkers_frontend
+- import_playbook: playbooks/checkers.yml
+
 # Импорт playbook для запуска HAProxy
 - import_playbook: playbooks/haproxy.yml
