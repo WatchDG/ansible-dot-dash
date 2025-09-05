@@ -1,0 +1,15 @@
+---
+# Основной playbook для Ansible
+# Обновление кэша пакетов на всех серверах
+
+- name: "Обновление кэша пакетов"
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: "Обновление кэша пакетов"
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"

@@ -1,0 +1,15 @@
+---
+# Файл зависимостей для Ansible Galaxy
+# Содержит список ролей и коллекций, которые нужно установить
+
+# Коллекции
+collections:
+  - name: community.general
+    version: ">=3.0.0"
+  - name: ansible.posix
+    version: ">=1.0.0"
+
+# Роли
+# roles:
+  # - name: example.role
+  #   version: "1.0.0"
