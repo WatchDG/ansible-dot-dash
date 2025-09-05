@@ -57,6 +57,7 @@
           backend http_back
               balance roundrobin
               option httpchk GET /
+              http-response set-header Location %[res.hdr(Location),regsub(:8080,:{{ haproxy_port }},g)] if { res.hdr(Location) -m found }
               server checkers_frontend checkers_frontend:8080 check
 
           # Статистика HAProxy
