@@ -1,0 +1,124 @@
+---
+# Playbook для запуска HAProxy в Docker контейнере
+# Запускает HAProxy на хостах группы haproxy
+
+- name: "Запуск HAProxy в Docker"
+  hosts: haproxy
+  become: true
+  gather_facts: true
+  vars_files:
+    - "../group_vars/all.yml"
+    - "../host_vars/{{ inventory_hostname }}.yml"
+
+  vars:
+    haproxy_image: "haproxy:latest"
+    haproxy_container_name: "haproxy"
+    haproxy_config_path: "/etc/haproxy"
+    haproxy_config_file: "haproxy.cfg"
+    haproxy_port: 80
+    haproxy_stats_port: 8404
+
+  tasks:
+    - name: "Проверка, что Docker установлен"
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: docker_check.rc != 0
+
+    - name: "Создание директории для конфигурации HAProxy"
+      file:
+        path: "{{ haproxy_config_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Создание базовой конфигурации HAProxy"
+      copy:
+        content: |
+          global
+              daemon
+              log stdout local0
+
+          defaults
+              mode http
+              log global
+              option httplog
+              option dontlognull
+              option log-health-checks
+              option forwardfor
+              option httpchk
+              timeout connect 5000
+              timeout client 50000
+              timeout server 50000
+
+          frontend http_front
+              bind *:{{ haproxy_port }}
+              default_backend http_back
+
+          backend http_back
+              balance roundrobin
+              option httpchk GET /
+              # Добавьте ваши серверы здесь
+              # server web1 192.168.1.10:80 check
+              # server web2 192.168.1.11:80 check
+
+          # Статистика HAProxy
+          frontend stats
+              bind *:{{ haproxy_stats_port }}
+              stats enable
+              stats uri /stats
+              stats refresh 30s
+              stats admin if TRUE
+        dest: "{{ haproxy_config_path }}/{{ haproxy_config_file }}"
+        mode: '0644'
+
+    - name: "Остановка существующего контейнера HAProxy (если запущен)"
+      docker_container:
+        name: "{{ haproxy_container_name }}"
+        state: stopped
+      ignore_errors: true
+
+    - name: "Удаление существующего контейнера HAProxy (если существует)"
+      docker_container:
+        name: "{{ haproxy_container_name }}"
+        state: absent
+      ignore_errors: true
+
+    - name: "Создание Docker сети для HAProxy"
+      docker_network:
+        name: haproxy_network
+        state: present
+
+    - name: "Запуск контейнера HAProxy"
+      docker_container:
+        name: "{{ haproxy_container_name }}"
+        image: "{{ haproxy_image }}"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ haproxy_port }}:{{ haproxy_port }}"
+          - "{{ haproxy_stats_port }}:{{ haproxy_stats_port }}"
+        volumes:
+          - "{{ haproxy_config_path }}/{{ haproxy_config_file }}:/usr/local/etc/haproxy/haproxy.cfg:ro"
+        networks:
+          - name: haproxy_network
+
+    - name: "Ожидание запуска HAProxy"
+      wait_for:
+        port: "{{ haproxy_port }}"
+        host: "{{ ansible_default_ipv4.address | default('localhost') }}"
+        delay: 5
+        timeout: 300
+
+    - name: "Проверка статуса контейнера HAProxy"
+      docker_container_info:
+        name: "{{ haproxy_container_name }}"
+      register: haproxy_info
+
+    - name: "Вывод информации о контейнере HAProxy"
+      debug:
+        msg: |
+          HAProxy контейнер запущен:
+          - Имя: {{ haproxy_info.container.Name }}
+          - Статус: {{ haproxy_info.container.State.Status }}
+          - Порты: {{ haproxy_info.container.NetworkSettings.Ports }}
+          - Статистика доступна по адресу: http://{{ ansible_default_ipv4.address | default('localhost') }}:{{ haproxy_stats_port }}/stats
