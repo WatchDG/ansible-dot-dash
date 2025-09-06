@@ -1,47 +1,39 @@
-# Ansible специфичные файлы
-*.retry
+# Ansible Vault
 .vault_pass
 vault_pass.txt
 
-# Логи
-*.log
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Временные файлы
-*.tmp
-*.temp
-
-# SSH ключи (не коммитить!)
-*.pem
-*.key
-id_rsa*
-
-# Переменные окружения
-.env
-.env.local
-
-# IDE файлы
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS файлы
+# OS
 .DS_Store
 Thumbs.db
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-
-# Node.js (если используется)
-node_modules/
-npm-debug.log*
-
-# Vagrant
-.vagrant/
+# Logs
+*.log

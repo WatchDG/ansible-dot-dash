@@ -8,6 +8,7 @@
   gather_facts: true
   vars_files:
     - "../group_vars/all.yml"
+    - "../group_vars/docker-vault.yml"
     - "../host_vars/{{ inventory_hostname }}.yml"
 
   vars:
